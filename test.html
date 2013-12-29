@@ -72,7 +72,7 @@
 			//MIDI.noteOn(0, 30, 127, 0);
 			$.ajax(
 				{
-					url : 'http://localhost:8080/midi',
+					url : 'http://testmidi.herokuapp.com/midi',
 					success : function(result) {
 						result = JSON.parse(result);
 						var data = result.data;
