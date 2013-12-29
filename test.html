@@ -1,0 +1,313 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns = "http://www.w3.org/1999/xhtml">
+<head>
+ <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+ <!-- midi.js package -->
+ <script src="./js/MIDI/AudioDetect.js" type="text/javascript"></script>
+ <script src="./js/MIDI/LoadPlugin.js" type="text/javascript"></script>
+ <script src="./js/MIDI/Plugin.js" type="text/javascript"></script>
+ <script src="./js/MIDI/Player.js" type="text/javascript"></script>
+ <script src="./js/Window/DOMLoader.XMLHttp.js" type="text/javascript"></script>
+ <script src="./js/Window/DOMLoader.script.js" type="text/javascript"></script>
+ <!-- extras -->
+ <script src="./inc/Base64.js" type="text/javascript"></script>
+ <script src="./inc/base64binary.js" type="text/javascript"></script>
+  <!-- jasmid package -->
+ <script src="./inc/jasmid/stream.js"></script>
+ <script src="./inc/jasmid/midifile.js"></script>
+ <script src="./inc/jasmid/replayer.js"></script>
+ <!-- vexflow renderer -->
+ <script src="js/vexflow-min.js"></script>
+ <!-- custom notetable -->
+ <script src="js/notetable.js"></script>
+ <style type="text/css">
+    body {
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #554;
+      margin: 0px;
+      height: 80%;
+    }
+
+    #error {
+      font-family: Courier;
+      color: red;
+      width: 600;
+    }
+
+    textarea#blah {
+      width: 500px;
+      height: 300px;
+      font-family: Courier;
+      font-size: 12px;
+      padding: 10px;
+      margin-top: 40px;
+      border: #eee solid 10px;
+    }
+  </style>
+
+</head>
+<body>
+	
+	<canvas width="700" height="100" id="canva"></canvas>
+	
+	
+<script src="./support/vexflow-min.js"></script>
+  <script src="./support/underscore-min.js"></script>
+  <script src="./support/jquery.js"></script>
+  <script src="./support/tabdiv-min.js"></script>
+
+  <script>
+    $(function() {
+    	MIDI.loadPlugin({
+		soundfontUrl: "./soundfont/",
+		instrument: "acoustic_grand_piano",
+		callback: function() {
+			var delay = 0; // play one note every quarter second
+			var note = 50; // the MIDI note
+			var velocity = 127; // how hard the note hits
+			// play the note
+			MIDI.setVolume(0, 127);
+			//MIDI.noteOn(0, 30, 127, 0);
+			$.ajax(
+				{
+					url : 'http://localhost:8080/midi',
+					success : function(result) {
+						result = JSON.parse(result);
+						var data = result.data;
+						MIDI.Player.loadFile(data);
+			for(var i = 0; i < MIDI.Player.data.length; i++) {
+			  console.log(MIDI.Player.data[i][0].event);
+			}
+			//MIDI.Player.start();
+			
+			var sumDelta = [];
+			var sumDeltaTime = 0;
+			var channels = [];
+			var tabIndex = 0;
+			
+			var blah = '';
+			blah += 'options stave-distance=30\n';
+			
+			for(var i = 0; i < MIDI.Player.data.length; i++) {
+				var evt = MIDI.Player.data[i][0].event;
+				if(typeof(evt.channel) != 'undefined') {
+					if(typeof(channels[tabIndex]) == 'undefined') {
+						channels[tabIndex] = [];
+					}
+					if(typeof(channels[tabIndex][evt.channel]) == 'undefined') {
+						channels[tabIndex][evt.channel] = '';
+						sumDelta[evt.channel] = 0;
+					}
+				}
+				
+				if(evt.type == 'channel' && typeof(evt.subtype) == 'undefined' && typeof(evt.noteNumber) != 'undefined') {
+					// note on
+				}
+				else if(evt.type == 'channel' && typeof(evt.subtype) != 'undefined' && evt.subtype == 'noteOff' && typeof(evt.noteNumber) != 'undefined') {
+					// note off
+					var str = 'notes ';
+					if(evt.deltaTime == 128) {
+						str += ':q';
+					}
+					else if(evt.deltaTime == 64) {
+						str += ':8';
+					}
+					else if(evt.deltaTime == 32) {
+						str += ':16';
+					}
+					else if(evt.deltaTime == 256) {
+						str += ':h';
+					}
+					else if(evt.deltaTime == 512) {
+						str += ':w';
+					}
+					var key = MIDI.noteToKey[evt.noteNumber]
+					var _arr = key.split('');
+					_arr[_arr.length] = _arr[_arr.length-1];
+					_arr[_arr.length-2] = '/';
+					key = _arr.join('');
+					str += ' ' + key;
+					
+					sumDelta[evt.channel] += evt.deltaTime;
+					var changedTab = false;
+					if(sumDelta[evt.channel] >= 128 * 4) {
+						str += ' | ';
+						sumDelta[evt.channel] = 0;
+						changedTab = true;
+					}
+					channels[tabIndex][evt.channel] += str + '\n';
+					if(changedTab && evt.channel == result.maxChannel) {
+						sumDeltaTime++;
+						if(sumDeltaTime == 4) {
+							tabIndex++;
+							sumDeltaTime = 0;
+						}
+					}
+				}
+				
+			}
+			
+			for(var i in channels) {
+				blah += 'tabstave notation=true\n';
+				for(var j in channels[i]) {
+					blah += 'voice\n';
+					blah += channels[i][j];
+				}
+			}
+			
+			
+			$('#blah').val(blah);
+					}
+				}
+			);
+			
+			
+			// vexflow
+			Vex.Flow.Artist.DEBUG = true;
+      Vex.Flow.VexTab.DEBUG = true;
+
+      renderer = new Vex.Flow.Renderer(document.getElementById("canva"),
+        Vex.Flow.Renderer.Backends.CANVAS);
+
+      artist = new Vex.Flow.Artist(10, 10, 600, {scale: 0.8});
+      vextab = new Vex.Flow.VexTab(artist);
+
+      function render() {
+        try {
+          vextab.reset();
+          artist.reset();
+          vextab.parse($("#blah").val());
+          artist.render(renderer);
+          playMIDI();
+          playing = false;
+          $("#error").text("");
+        } catch (e) {
+          console.log(e);
+          $("#error").text(e.message);
+        }
+      }
+
+      //$("#blah").keyup(_.throttle(render, 250));
+      $('#playBtn').click(render)
+      //render();
+      // vexflow end
+      
+      playMIDI();
+		}
+	});
+	
+	
+    })
+  
+
+var playing = false;
+var playMIDI = function(tempo) {
+	if(typeof(tempo) == 'undefined') tempo = 120;
+	var dur = 60 / tempo * 1000;
+	//console.log('playMIDI:'+ playing);
+	if(playing) return;
+	playing = true;
+	console.log(artist);
+	var player_voices_index = 0;
+	
+	var process_voices = function() {
+		console.log('process voices:' + player_voices_index + ' < ' + artist.player_voices.length)
+		if(player_voices_index < artist.player_voices.length) {
+			process_notes();
+		}
+		else {
+			console.log('playing false')
+			playing = false;
+		}
+	}
+	var process_notes = function() {
+		var finished_notes = 0;
+		console.log('player voices:' + player_voices_index + "| " + artist.player_voices[player_voices_index]);
+		for(var i = 0; i < artist.player_voices[player_voices_index].length; i++) {
+			var tick = function(i) {
+				setTimeout(function() {
+				
+					process_ticks(i, function finish() {
+						finished_notes++;
+						if(finished_notes >= artist.player_voices[player_voices_index].length) {
+							player_voices_index++;
+							finished_notes=0;
+							process_voices();
+						}
+					});
+				}, i + 1);
+			}
+			tick(i);
+		}
+	}
+	var process_ticks = function(notes_index, finish) {
+		console.log('process ticks1:' + player_voices_index + "/" + notes_index);
+		var tick_index = artist.player_voices[player_voices_index][notes_index].tick_index;
+		if(typeof tick_index == 'undefined') {
+			tick_index = 0;
+			artist.player_voices[player_voices_index][notes_index].tick_index = tick_index;
+		}
+		var tickables = artist.player_voices[player_voices_index][notes_index].tickables;
+		console.log('process ticks2:'+tick_index);
+		if(tick_index < artist.player_voices[player_voices_index][notes_index].tickables.length) {
+			var tickable = artist.player_voices[player_voices_index][notes_index].tickables[tick_index];
+			console.log('tickable3:'+player_voices_index+"/" + notes_index + "/" + tick_index);
+			if(typeof(tickable.keys) != 'undefined' && tickable.keys.length) {
+				console.log('tickable keys:'+tickable.keys.length)
+				for(var i in tickable.keys) {
+					var key = tickable.keys[i];
+					var pairs = key.split('/');
+					pairs[0] = pairs[0].toLowerCase();
+					if(pairs[0] == 'db') pairs[0] = 'd';
+					var noteName = pairs[0] + '' + pairs[1];
+					var octave = noteTable[noteName];
+					MIDI.noteOn(0, octave, 127, 0);
+					console.log('tickable key:' + key + ", " + noteName)
+				}
+			}
+			
+			var durationTimeTable = {
+				'2' : dur / 8,
+				'4' : dur / 4,
+				'8' : dur / 2,
+				'16' : dur / 4,
+				'q' : dur,
+				'h' : dur * 2,
+				'w' : dur * 4
+			};
+			waitTime = durationTimeTable[tickable.duration];
+			artist.player_voices[player_voices_index][notes_index].tick_index++;
+			setTimeout(process_ticks, waitTime, notes_index, finish);
+		}
+		else {
+			finish();
+		}
+	}
+	process_voices();
+}
+
+</script>
+
+<textarea id="blah">options stave-distance=30
+tabstave notation=true
+notes :q (2-2-3-5/4.2-2/5) | (5-3-2/4.5/5) 5/5 | (3-3-5-7/5.3-3/6) | :h (7/5.7/6) :8 5/5 :q 5/5
+tabstave notation=true
+notes :q (2-2-3-5/4.2-2/5) | (5-3-2/4.5/5) 5/5 | (3-3-5-7/5.3-3/6) | :h (5/5.5/6) :8 3/5 :q 3/5
+tabstave notation=true
+notes :q (5-5-7-3/5.5-5/6) | (5/5.5/6) :8 7-8/5 :q 7/5 3/5 | (5/5.5/6) :8 7-8/5 :q 7/5 5/5 
+tabstave notation=true
+notes :q (3-5/5.3/6)| :w (3/6.2/5)
+tabstave notation=true
+notes :q (2-2-3-5/4.2-2/5) | (5-3-2/4.5/5) 5/5 | (3-3-5-7/5.3-3/6) | :h 5/5 :8 3/5 :q 3/5
+
+tabstave
+notes :q 2-2-3-5/4 | 5-3-2/4 5/5 | 3-3-5-7/5 | :h 7/5 :8 5/5 :q 5/5
+notes :q 2-2-3-5/4 | 5-3-2/4 5/5 | 3-3-5-7/5 | :h 5/5 :8 3/5 :q 3/5
+notes :q 5-5-7-3/5 | 5/5 :8 7-8/5 :q 7/5 3/5 | 5/5 :8 7-8/5 :q 7/5 5/5 
+notes :q 5/5 :8 7-8/5 :q 7/5 5/5 | 3-5/5 :h 3/6
+notes :q 2-2-3-5/4 | 5-3-2/4 5/5 | 3-3-5-7/5 | :h 5/5 :8 3/5 :q 3/5  </textarea>
+  <input type="button" id="playBtn" value="PLAY" />
+</body>
+</html>

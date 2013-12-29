@@ -1,0 +1,116 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns = "http://www.w3.org/1999/xhtml">
+<head>
+ <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+ <!-- midi.js package -->
+ <script src="./js/MIDI/AudioDetect.js" type="text/javascript"></script>
+ <script src="./js/MIDI/LoadPlugin.js" type="text/javascript"></script>
+ <script src="./js/MIDI/Plugin.js" type="text/javascript"></script>
+ <script src="./js/MIDI/Player.js" type="text/javascript"></script>
+ <script src="./js/Window/DOMLoader.XMLHttp.js" type="text/javascript"></script>
+ <script src="./js/Window/DOMLoader.script.js" type="text/javascript"></script>
+ <!-- extras -->
+ <script src="./inc/Base64.js" type="text/javascript"></script>
+ <script src="./inc/base64binary.js" type="text/javascript"></script>
+ <!-- vexflow renderer -->
+ <script src="js/vexflow-min.js"></script>
+ <!-- custom notetable -->
+ <script src="js/notetable.js"></script>
+</head>
+<body>
+	
+	<canvas width="700" height="100" id="canva"></canvas>
+	
+	
+<script type="text/javascript">
+
+var canvas = document.getElementById('canva');
+  var renderer = new Vex.Flow.Renderer(canvas,
+    Vex.Flow.Renderer.Backends.CANVAS);
+
+  var ctx = renderer.getContext();
+  var stave = new Vex.Flow.Stave(10, 0, 500);
+  stave.addClef("treble").setContext(ctx).draw();
+
+  // Create the notes
+  var notes = [
+    // Dotted eighth E##
+    new Vex.Flow.StaveNote({ keys: ["e#/5"], duration: "q" }).
+      addAccidental(0, new Vex.Flow.Accidental("##")).addDotToAll(),
+
+    // Sixteenth Eb
+    new Vex.Flow.StaveNote({ keys: ["e/5"], duration: "q" }).
+      addAccidental(0, new Vex.Flow.Accidental("b")),
+
+    // Half D
+    new Vex.Flow.StaveNote({ keys: ["d/5"], duration: "q" }),
+
+    // Quarter Cm#5
+    new Vex.Flow.StaveNote({ keys: ["c/5", "e/5", "g#/5"], duration: "q" }).
+      addAccidental(1, new Vex.Flow.Accidental("b")).
+      addAccidental(2, new Vex.Flow.Accidental("#"))
+  ];
+  // Create a voice in 4/4
+  var voice = new Vex.Flow.Voice({
+    num_beats: 4,
+    beat_value: 4,
+    resolution: Vex.Flow.RESOLUTION
+  });
+
+  // Add notes to voice
+  voice.addTickables(notes);
+
+  // Format and justify the notes to 500 pixels
+  var formatter = new Vex.Flow.Formatter().
+    joinVoices([voice]).format([voice], 500);
+
+  // Render voice
+  voice.draw(ctx, stave);
+  console.log(voice);
+  
+window.onload = function () {
+	MIDI.loadPlugin({
+		soundfontUrl: "./soundfont/",
+		instrument: "acoustic_grand_piano",
+		callback: function() {
+			var delay = 0; // play one note every quarter second
+			var note = 50; // the MIDI note
+			var velocity = 127; // how hard the note hits
+			// play the note
+			MIDI.setVolume(0, 127);
+			//MIDI.noteOn(0, 30, 127, 0);
+			
+			// play midi
+			
+			var _index = 0;
+			var next = function() {
+				if(_index < voice.tickables.length) {
+					var tickable = voice.tickables[_index];
+					if(tickable.keys.length) {
+						for(var i in tickable.keys) {
+							var key = tickable.keys[i];
+							var noteName = key.replace('/','');
+							var octave = noteTable[noteName];
+							MIDI.noteOn(0, octave, 127, 0);
+						}
+					}
+					var dur = 1000;
+					var durationTimeTable = {
+						'8' : dur / 2,
+						'16' : dur / 4,
+						'q' : dur,
+						'h' : dur * 2
+					};
+					waitTime = durationTimeTable[tickable.duration];
+					_index++;
+					setTimeout(next, waitTime);
+				}
+			}
+			next();
+		}
+	});
+};
+
+</script>
+</body>
+</html>

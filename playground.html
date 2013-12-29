@@ -1,0 +1,95 @@
+<html>
+
+<head>
+  <title>VexTab Playground</title>
+  <style type="text/css">
+    body {
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      color: #554;
+      margin: 0px;
+      height: 80%;
+    }
+
+    #error {
+      font-family: Courier;
+      color: red;
+      width: 600;
+    }
+
+    textarea#blah {
+      width: 500px;
+      height: 300px;
+      font-family: Courier;
+      font-size: 12px;
+      padding: 10px;
+      margin-top: 40px;
+      border: #eee solid 10px;
+    }
+  </style>
+
+  <!-- Support Sources -->
+  <script src="./support/vexflow-min.js"></script>
+  <script src="./support/underscore-min.js"></script>
+  <script src="./support/jquery.js"></script>
+  <script src="./support/tabdiv-min.js"></script>
+
+  <script>
+    $(function() {
+      Vex.Flow.Artist.DEBUG = true;
+      Vex.Flow.VexTab.DEBUG = true;
+
+      renderer = new Vex.Flow.Renderer($('#boo')[0],
+        Vex.Flow.Renderer.Backends.CANVAS);
+
+      artist = new Vex.Flow.Artist(10, 10, 600, {scale: 0.8});
+      vextab = new Vex.Flow.VexTab(artist);
+
+      function render() {
+        try {
+          vextab.reset();
+          artist.reset();
+          vextab.parse($("#blah").val());
+          artist.render(renderer);
+          $("#error").text("");
+        } catch (e) {
+          console.log(e);
+          $("#error").text(e.message);
+        }
+      }
+
+      $("#blah").keyup(_.throttle(render, 250));
+      render();
+    })
+  </script>
+</head>
+
+<body>
+  <h1>VexTab Playground</h1>
+
+  <div style="float:left;width:600;">
+    <canvas id="boo"></canvas>
+    <div id="error"></div>
+  </div>
+
+  <div style="float:left;">
+  <textarea id="blah">options stave-distance=30
+tabstave notation=true
+         key=A
+         time=4/4
+  voice
+    notes :q (5/2.5/3.7/4) :8 7p5h6/3 ^3^ 5h6h7/5 ^3^ :q 7V/4 |
+    notes :8 t12p7/4 s5s3/4 :8 3s:16:5-7/5 :q p5/4
+  voice
+    notes :h 5/6 :q 5/6 :8 4-5/5 | :w 5/5
+
+tabstave notation=true
+  notes :q (5/4.5/5)s(7/4.7/5)s(5/4.5/5) ^3^
+  notes :q ## :8 (5/4.5/5)h(7/5) |
+  notes :8 t(12/5.12/4)s(5/5.5/4) 3b4/5
+  notes :h (5V/6.5/4.6/3.7/2) $.medium.A13$ $.italic.let ring$ </textarea>
+  </div>
+</body>
+
+</html>
