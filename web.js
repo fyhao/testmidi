@@ -130,4 +130,5 @@ app.get('/midi', function(req, res) {
 	//data:audio/midi;base64,TVRoZAAAAAYAAAABAIBNVHJrAAAAWADBAQCRPFqBAIE8WgCRPFqBAIE8WgCRPFqBAIE8WgCRPFqBAIE8WgCRPlqBAIE+WgCRPlqBAIE+WgCRQFqBAIFAWgCRN1qBAIE3WgCROVqCAIE5WgD/LwA=
 	var result = {data:'data:audio/midi;base64,'+new Buffer(file.toBytes(), 'binary').toString('base64'), maxChannel:3};
 	res.end(JSON.stringify(result));
+	
 });
