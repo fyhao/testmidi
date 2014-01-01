@@ -59,6 +59,7 @@
   <script src="./support/tabdiv-min.js"></script>
 
   <script>
+  var basepath = '##basepath##';
     $(function() {
     	MIDI.loadPlugin({
 		soundfontUrl: "./soundfont/",
@@ -72,7 +73,7 @@
 			//MIDI.noteOn(0, 30, 127, 0);
 			$.ajax(
 				{
-					url : 'http://testmidi.herokuapp.com/midi',
+					url : basepath + '/midi?song=##song##',
 					success : function(result) {
 						result = JSON.parse(result);
 						var data = result.data;
