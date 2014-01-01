@@ -13,7 +13,7 @@ app.use(express.bodyParser());
 app.use(express.static(__dirname+'/static'));
 app.listen(port);
 
-var basepath = 'http://testmidi.herokuapps.com';
+var basepath = 'http://testmidi.herokuapp.com';
 if(port != process.env.PORT) {
 	basepath = 'http://localhost:' + port;
 }
