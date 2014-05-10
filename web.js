@@ -28,7 +28,8 @@ app.get('/', function(req, res) {
 		basepath : basepath
 	};
 	if(page == 'test.html') {
-		templateValues.song = 'song1';
+		var song = req.param('song','song1');
+		templateValues.song = song;		
 	}
 	
 	var data = fs.readFileSync(page, 'utf8');

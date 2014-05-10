@@ -105,6 +105,28 @@ songs.song1 = function() {
 	return file.toBytes();
 };
 
+songs.song2 = function() {
+	file = new Midi.File();
+	// logic
+	var arr = [];
+	arr = arr.concat([12.1,13.1,8.1,12.1,12.1,13.1,13.2]);
+	arr = arr.concat([12.1,13.1,8.1,13.1,13.1,12,7.1]);
+	arr = arr.concat([11.1,12.1,7.1,11.1,11.1,12,7.1]);
+	arr = arr.concat([10.4,9.4]);
+	arr = arr.concat([12.1,13.1,8.1,12.1,12.1,13.1,13.2]);
+	arr = arr.concat([13.1,12.1,8.1,13.1,13.1,12,7.1]);
+	arr = arr.concat([11.1,12.1,7.1,11.1,11.1,12,7.1]);
+	
+	var arr1 = [];
+	for(var i = 0; i < arr.length; i++) {
+	        arr1.push(arr[i] + 7);
+	}
+	addMusic(1, 0x01, arr1);
+	
+	
+	return file.toBytes();
+};
+
 module.exports = {
 	getMidiSong : function(song) {
 		if(typeof(songs[song]) != 'undefined') {
